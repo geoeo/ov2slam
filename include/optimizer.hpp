@@ -27,6 +27,8 @@
 
 
 #include <deque>
+#include <fstream>
+#include <iomanip>
 
 #include "map_manager.hpp"
 

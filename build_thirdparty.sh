@@ -33,7 +33,7 @@ cd Thirdparty/Sophus
 mkdir build
 mkdir install
 cd build/
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="../install/"
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="/usr/local/"
 make -j4 install
 cd ../../..
 
@@ -45,6 +45,7 @@ cd Thirdparty/ceres-solver
 mkdir build
 mkdir install
 cd build/
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-march=native" -DCMAKE_INSTALL_PREFIX="../install/" -DBUILD_EXAMPLES=OFF
+#cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-march=native" -DCMAKE_INSTALL_PREFIX="/usr/local/" -DBUILD_EXAMPLES=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_INSTALL_PREFIX="/usr/local/" -DBUILD_EXAMPLES=OFF
 make -j4 install
 cd ../../..

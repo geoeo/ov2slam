@@ -1,23 +1,87 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.9)
 project(ov2slam)
 
-if(POLICY CMP0022)
-  cmake_policy(SET CMP0022 NEW)
-endif()
+set(ov2slam_VERSION "1.0.2")
+
+set(LIBRARY_NAME ov2slam)
+
+################################################################################
+# Options
+################################################################################
 
 #######
 # NOTE!
 #######
 # Set to OFF if you did not compile OpenCV w. opencv_contrib
-set(WITH_OPENCV_CONTRIB ON)
+set(WITH_OPENCV_CONTRIB OFF)
 
-if( ${CMAKE_VERSION} VERSION_LESS "3.8.2" )
-    set(CMAKE_CXX_STANDARD 14)
-else()
-    set(CMAKE_CXX_STANDARD 17)
+# iBOW-LCD
+#
+# First check if the related thridparty libs have been
+# built. Only set the use of iBoW-LCD to true if built.
+set(WITH_IBOW_LCD OFF)
+
+################################################################################
+# Paths
+################################################################################
+
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+if(UNIX)
+  include(GNUInstallDirs)
+
+  set(ov2slam_INC_INSTALL_DIR "/usr/local/include/${PROJECT_NAME}")
+  set(ov2slam_RUNTIME_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
+  set(ov2slam_LIBRARY_INSTALL_DIR "/usr/local/lib")
+  set(ov2slam_ARCHIVE_INSTALL_DIR "/usr/local/lib")
+  set(ov2slam_FRAMEWORK_INSTALL_DIR "/usr/local/lib")
+
+  set(ov2slam_CMAKE_CONFIG_INSTALL_DIR "/usr/local/lib/cmake/ov2slam")
+  set(ov2slam_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/ov2slam")
 endif()
 
-set(CMAKE_BUILD_TYPE "Release")
+################################################################################
+# Include CMake dependencies
+################################################################################
+
+include(CheckCXXCompilerFlag)
+include(CheckLanguage)
+include(CMakePackageConfigHelpers)
+
+################################################################################
+# Compiler specific configuration
+################################################################################
+
+if(POLICY CMP0022)
+  cmake_policy(SET CMP0022 NEW)
+endif()
+
+if(POLICY CMP0028)
+  cmake_policy(SET CMP0028 NEW)
+endif()
+
+if(CMAKE_BUILD_TYPE)
+  message(STATUS "Build type specified as ${CMAKE_BUILD_TYPE}")
+else()
+  message(STATUS "Build type not specified, using Release")
+  set(CMAKE_BUILD_TYPE Release)
+  set(IS_DEBUG OFF)
+endif()
+
+if( ${CMAKE_VERSION} VERSION_LESS "3.8.2" )
+  set(CMAKE_CXX_STANDARD 14)
+else()
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+################################################################################
+# Flags
+################################################################################
 
 #######
 # NOTE!
@@ -29,8 +93,13 @@ set(CMAKE_BUILD_TYPE "Release")
 # If you experience exceptions you can either re-compile
 # opengv and ov2slam without -march=native or re-compile
 # ceres with it
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
 
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+
+################################################################################
+# Dependencies
+################################################################################
 
 if(WITH_OPENCV_CONTRIB)
     message("\nGoing to use OpenCV contrib! (WITH_OPENCV_CONTRIB is set to : ${WITH_OPENCV_CONTRIB}.
@@ -38,30 +107,9 @@ Set it to OFF is OpenCV was not compiled with the opencv_contrib modules)\n")
     add_definitions(-DOPENCV_CONTRIB)
 endif()
 
-
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED
-    COMPONENTS
-        roscpp
-        std_msgs
-        sensor_msgs
-        cv_bridge
-        image_transport
-        tf
-        pcl_ros
-)
-
-# iBOW-LCD
-#
-# First check if the related thridparty libs have been
-# built. Only set the use of iBoW-LCD to true if built.
-set(WITH_IBOW_LCD OFF)
-
 if( EXISTS "${PROJECT_SOURCE_DIR}/Thirdparty/ibow_lcd/build/liblcdetector.so" )
-  add_definitions(-DIBOW_LCD)
-  set(WITH_IBOW_LCD ON)
+  #add_definitions(-DIBOW_LCD)
+  #set(WITH_IBOW_LCD ON)
   message(STATUS "iBoW-LCD found!  Going to use Loop Closer!")
 else ( )
   message(STATUS "iBoW-LCD NOT found!  Loop Closer will not be enabled!")
@@ -101,105 +149,169 @@ if (opengv_FOUND)
 endif (opengv_FOUND)
 
 # Ceres
-find_package(Ceres NO_DEFAULT_PATH PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/ceres-solver/install/)
+#find_package(Ceres NO_DEFAULT_PATH PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/ceres-solver/install/)
 find_package(Ceres REQUIRED)
 
 if (Ceres_FOUND)
   message(STATUS "Found Ceres lib : ${CERES_VERSION} - ${Ceres_DIR}")
 endif (Ceres_FOUND)
 
+find_package(PCL 1.7 REQUIRED)
+list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+
+if (PCL_FOUND)
+  message(STATUS "Found PCL lib : ${PCL_VERSION} - ${PCL_DIR}")
+endif (PCL_FOUND)
+
 #Sophus
 # First search for a custom build of Sophus within this project
-find_package(Sophus NO_DEFAULT_PATH PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus/build/)
-find_package(Sophus REQUIRED)
+#find_package(Sophus NO_DEFAULT_PATH PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus/build/)
+#find_package(Sophus NO_DEFAULT_PATH PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus/install)
+find_package(Sophus REQUIRED HINTS ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus/install)
 
 if (Sophus_FOUND)
   message(STATUS "Found Sophus lib : ${Sophus_VERSION} - ${Sophus_DIR}")
 endif (Sophus_FOUND)
 
-catkin_package()
+################################################################################
+# Sources
+################################################################################
 
-###########
-## Build ##
-###########
-
-## Declare a C++ library
-add_library(${PROJECT_NAME}
-  src/ov2slam.cpp
-  src/camera_visualizer.cpp
-  src/visual_front_end.cpp
-  src/frame.cpp
-  src/slam_params.cpp
-  src/camera_calibration.cpp
-  src/feature_extractor.cpp
-  src/feature_tracker.cpp
-  src/map_manager.cpp
-  src/map_point.cpp
-  src/mapper.cpp
-  src/multi_view_geometry.cpp
-  src/ceres_parametrization.cpp
-  src/optimizer.cpp
-  src/estimator.cpp
-  src/loop_closer.cpp
+include_directories(
+        ${PROJECT_SOURCE_DIR}/include
+        ${catkin_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}/include/ceres_parametrization
+        ${Sophus_INCLUDE_DIRS}
+        ${PCL_INCLUDE_DIRS}
+        ${PCL_LIBRARY_DIRS}
 )
 
-
-# Add mandatory dependencies
-target_include_directories(${PROJECT_NAME}
-  PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
-    ${catkin_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/include/ceres_parametrization
+set(HEADERS
+        include/camera_calibration.hpp
+        include/estimator.hpp
+        include/feature_extractor.hpp
+        include/feature_tracker.hpp
+        include/frame.hpp
+        include/logger.hpp
+        include/loop_closer.hpp
+        include/map_manager.hpp
+        include/map_point.hpp
+        include/mapper.hpp
+        include/multi_view_geometry.hpp
+        include/optimizer.hpp
+        include/ov2slam.hpp
+        include/profiler.hpp
+        include/slam_params.hpp
+        include/visual_front_end.hpp
+        include/ceres_parametrization/ceres_parametrization.hpp
+        include/ceres_parametrization/ceres_parametrization/intrinsic_param_block.hpp
+        include/ceres_parametrization/ceres_parametrization/inverse_depth_param_block.hpp
+        include/ceres_parametrization/ceres_parametrization/pointxyz_param_block.hpp
+        include/ceres_parametrization/ceres_parametrization/se3_param_block.hpp
+        include/ceres_parametrization/ceres_parametrization/se3left_parametrization.hpp
 )
 
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC
-      ${catkin_LIBRARIES}
-      Eigen3::Eigen
-      Sophus::Sophus
-    PRIVATE
-      ${OpenCV_LIBS}
-      Ceres::ceres
+set(SOURCES
+        src/ov2slam.cpp
+        src/visual_front_end.cpp
+        src/frame.cpp
+        src/slam_params.cpp
+        src/camera_calibration.cpp
+        src/feature_extractor.cpp
+        src/feature_tracker.cpp
+        src/map_manager.cpp
+        src/map_point.cpp
+        src/mapper.cpp
+        src/multi_view_geometry.cpp
+        src/ceres_parametrization.cpp
+        src/optimizer.cpp
+        src/estimator.cpp
+        src/loop_closer.cpp
 )
 
+add_library(${LIBRARY_NAME} SHARED
+        ${HEADERS}
+        ${SOURCES}
+)
+
+target_include_directories(${LIBRARY_NAME} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ceres_parametrization> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ceres_parametrization/ceres_parametrization> # for headers when building
+        $<INSTALL_INTERFACE:${ov2slam_INC_INSTALL_DIR}> # for client in install mode
+)
 
 # Add optional dependencies if they are found
 if (WITH_IBOW_LCD)
-  target_include_directories(
-    ${PROJECT_NAME}
-    PUBLIC
-      ${PROJECT_SOURCE_DIR}/Thirdparty/obindex2/lib/include/
-      ${PROJECT_SOURCE_DIR}/Thirdparty/ibow_lcd/include/
+  target_include_directories(${LIBRARY_NAME} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/obindex2/lib/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/ibow_lcd/include>
+        $<INSTALL_INTERFACE:${ov2slam_INC_INSTALL_DIR}> # for client in install mode
   )
 
-  target_link_libraries(
-    ${PROJECT_NAME}
-      PRIVATE
-        ${PROJECT_SOURCE_DIR}/Thirdparty/ibow_lcd/build/liblcdetector.so
+  target_link_libraries(${LIBRARY_NAME} PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/ibow_lcd/build/liblcdetector.so>
+        $<INSTALL_INTERFACE:${ov2slam_INC_INSTALL_DIR}>
   )
 endif (WITH_IBOW_LCD)
 
 if (opengv_FOUND)
-  target_link_libraries(
-    ${PROJECT_NAME}
-      PRIVATE
+  target_link_libraries(${LIBRARY_NAME} PRIVATE
         opengv
   )
 endif (opengv_FOUND)
 
-## Add cmake target dependencies of the library
-## as an example, code may need to be generated before libraries
-## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${LIBRARY_NAME}
+        PRIVATE
+          ${OpenCV_LIBS}
+          Ceres::ceres
+          ${PCL_LIBRARIES}
+        PUBLIC
+          ${EIGEN3_LIBS}
+          ${Sophus_LIBS}
+)
 
-## Declare a C++ executable
-## With catkin_make all packages are built within a single CMake context
-## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/ov2slam_node.cpp)
+################################################################################
+# Create Targets
+################################################################################
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(
-    ${PROJECT_NAME}_node
-    PRIVATE
-      ${PROJECT_NAME}
+# Library
+install(TARGETS ${LIBRARY_NAME} EXPORT ov2slamTargets
+        RUNTIME       DESTINATION ${ov2slam_RUNTIME_INSTALL_DIR}
+        LIBRARY       DESTINATION ${ov2slam_LIBRARY_INSTALL_DIR}
+        ARCHIVE       DESTINATION ${ov2slam_ARCHIVE_INSTALL_DIR}
+        FRAMEWORK     DESTINATION ${ov2slam_FRAMEWORK_INSTALL_DIR})
+
+# Headers
+install(
+        FILES ${HEADERS}
+        DESTINATION ${ov2slam_INC_INSTALL_DIR}
+)
+
+
+################################################################################
+# Install All
+################################################################################
+
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "ov2slam-${ov2slam_VERSION}")
+
+# Create and install version file
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/ov2slamConfigVersion.cmake")
+write_basic_package_version_file(${version_file}
+        VERSION ${ov2slam_VERSION}
+        COMPATIBILITY ExactVersion
+        )
+install(FILES ${version_file}
+        DESTINATION ${ov2slam_CMAKE_CONFIG_INSTALL_DIR})
+
+# install readme and license
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+        DESTINATION ${ov2slam_ADDITIONAL_FILES_INSTALL_DIR}
+        )
+
+install(
+        EXPORT ov2slamTargets
+        DESTINATION ${ov2slam_CMAKE_CONFIG_INSTALL_DIR}
+        FILE ov2slamConfig.cmake
 )

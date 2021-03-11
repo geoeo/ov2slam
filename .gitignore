@@ -1,0 +1,11 @@
+.idea/*
+cmake-build-debug/*
+Thirdparty/Sophus/build/*
+Thirdparty/Sophus/install/*
+Thirdparty/ceres-solver/build/*
+Thirdparty/ceres-solver/install/*
+Thirdparty/ibow_lcd/build/*
+Thirdparty/obindex2/build/*
+build/*
+parameters_files/wien_mono.yaml
+

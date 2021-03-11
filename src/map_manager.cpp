@@ -322,6 +322,8 @@ void MapManager::extractKeypoints(const cv::Mat &im, const cv::Mat &imraw)
             exit(-1);
         }
 
+        std::cout << "Keypoints detected: " << vnewpts.size() << std::endl;
+
         if( !vnewpts.empty() ) {
             if( pslamstate_->use_brief_ ) {
                 std::vector<cv::Mat> vdescs;
@@ -648,7 +650,7 @@ void MapManager::addMapPoint(const cv::Scalar &color)
     if( plm->isobs_ ) {
         colored_pt = pcl::PointXYZRGB(255, 0, 0);
     } else {
-        colored_pt = pcl::PointXYZRGB(plm->color_[0] 
+        colored_pt = pcl::PointXYZRGB(plm->color_[0]
                                     , plm->color_[0]
                                     , plm->color_[0]
                                     );
@@ -676,7 +678,7 @@ void MapManager::addMapPoint(const cv::Mat &desc, const cv::Scalar &color)
     if( plm->isobs_ ) {
         colored_pt = pcl::PointXYZRGB(255, 0, 0);
     } else {
-        colored_pt = pcl::PointXYZRGB(plm->color_[0] 
+        colored_pt = pcl::PointXYZRGB(plm->color_[0]
                                     , plm->color_[0]
                                     , plm->color_[0]
                                     );
@@ -754,7 +756,7 @@ void MapManager::updateMapPoint(const int lmid, const Eigen::Vector3d &wpt, cons
     if(plmit->second->isobs_ ) {
         colored_pt = pcl::PointXYZRGB(255, 0, 0);
     } else {
-        colored_pt = pcl::PointXYZRGB(plmit->second->color_[0] 
+        colored_pt = pcl::PointXYZRGB(plmit->second->color_[0]
                                     , plmit->second->color_[0]
                                     , plmit->second->color_[0]
                                     );
@@ -1003,7 +1005,7 @@ void MapManager::removeObsFromCurFrameById(const int lmid)
 {
     // Remove cur obs
     pcurframe_->removeKeypointById(lmid);
-    
+
     // Set MP as not obs
     auto plmit = map_plms_.find(lmid);
 
@@ -1020,11 +1022,11 @@ void MapManager::removeObsFromCurFrameById(const int lmid)
     plmit->second->isobs_ = false;
 
     // Update MP color
-    colored_pt = pcl::PointXYZRGB(plmit->second->color_[0] 
+    colored_pt = pcl::PointXYZRGB(plmit->second->color_[0]
                                 , plmit->second->color_[0]
                                 , plmit->second->color_[0]
                                 );
-                                
+
     colored_pt.x = pcloud_->points.at(lmid).x;
     colored_pt.y = pcloud_->points.at(lmid).y;
     colored_pt.z = pcloud_->points.at(lmid).z;

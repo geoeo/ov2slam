@@ -31,9 +31,9 @@
 #include <mutex>
 
 #include "slam_params.hpp"
-#include "ros_visualizer.hpp"
+//#include "ros_visualizer.hpp"
 
-#include "logger.hpp"
+//#include "logger.hpp"
 
 #include "camera_calibration.hpp"
 #include "feature_extractor.hpp"
@@ -50,11 +50,13 @@ class SlamManager {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    SlamManager(std::shared_ptr<SlamParams> pstate, std::shared_ptr<RosVisualizer> pviz);
+    SlamManager(std::shared_ptr<SlamParams> pstate);
 
     void run();
 
     bool getNewImage(cv::Mat &iml, cv::Mat &imr, double &time);
+
+    long getCurrentTimeSeconds();
 
     void addNewStereoImages(const double time, cv::Mat &im0, cv::Mat &im1);
     void addNewMonoImage(const double time, cv::Mat &im0);
@@ -78,6 +80,10 @@ public:
     
     void visualizeFinalKFsTraj();
 
+    cv::Mat drawFrame();
+
+    void printSettings();
+
     int frame_id_ = -1;
     bool bnew_img_available_ = false;
 
@@ -88,7 +94,7 @@ public:
     bool bkf_viz_ison_ = false;
 
     std::shared_ptr<SlamParams> pslamstate_;
-    std::shared_ptr<RosVisualizer> prosviz_;
+    //std::shared_ptr<RosVisualizer> prosviz_;
 
     std::shared_ptr<CameraCalibration> pcalib_model_left_;
     std::shared_ptr<CameraCalibration> pcalib_model_right_;
@@ -107,4 +113,9 @@ public:
     std::queue<double> qimg_time_;
 
     std::mutex img_mutex_;
+
+    bool bprocess_triggered_;
+
+    std::mutex img_display_mutex_;
+    cv::Mat pimg_display_;
 };

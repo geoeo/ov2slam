@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="ov2slam" type="ov2slam_node" name="ov2slam" args="/media/hdd/Workspace/ov2slam/src/ov2slam/parameters_files/wien_mono.yaml" launch-prefix="xterm -e gdb --args" />
+</launch>

@@ -26,6 +26,8 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -289,9 +291,3 @@ public:
     // loop-closures in the traj!
     static std::vector<FramePose> vframepose_;
 };
-
-// Has to be defined before being used
-std::vector<SE3Pose> Logger::vse3pose_, Logger::vfullse3pose_;
-std::map<double, SE3Pose>  Logger::vse3kfpose_;
-std::vector<KittiPose> Logger::vkittipose_;
-std::vector<FramePose> Logger::vframepose_;

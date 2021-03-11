@@ -47,7 +47,7 @@ bool VisualFrontEnd::visualTracking(cv::Mat &iml, double time)
     bool iskfreq = trackMono(iml, time);
 
     if( iskfreq ) {
-        pmap_->createKeyframe(cur_img_, iml);
+        pmap_->createKeyframe(cur_img_, iml);;
 
         if( pslamstate_->btrack_keyframetoframe_ ) {
             cv::buildOpticalFlowPyramid(cur_img_, kf_pyr_, pslamstate_->klt_win_size_, pslamstate_->nklt_pyr_lvl_);
@@ -98,6 +98,7 @@ bool VisualFrontEnd::trackMono(cv::Mat &im, double time)
     if( pslamstate_->mono_ && !pslamstate_->bvision_init_ ) 
     {
         if( pcurframe_->nb2dkps_ < 50 ) {
+            std::cout << "Less than 50 keypoints detected. Reset requested." << std::endl;
             pslamstate_->breset_req_ = true;
             return false;
         } 

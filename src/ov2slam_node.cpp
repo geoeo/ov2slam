@@ -77,11 +77,14 @@ public:
             ROS_ERROR("\n\n\ncv_bridge exeception: %s\n\n\n", e.what());
         }
 
+	std::cout << "test: " << ptr->image.size() << std::endl;
+
+	cv::Mat grey = ptr->image;
         if( ptr->image.channels() == 3 ) {
-            cv::cvtColor(ptr->image, ptr->image, cv::COLOR_RGB2GRAY);
+            cv::cvtColor(ptr->image, grey, cv::COLOR_RGB2GRAY);
         }
 
-        return ptr->image;
+        return grey;
     }
 
     // extract images with same timestamp from two topics

@@ -31,7 +31,10 @@
 
 
 SlamManager::SlamManager(std::shared_ptr<SlamParams> pstate)
-    : pslamstate_(pstate)
+    : pslamstate_(pstate),
+      t_current(-1),
+      t_cam_delay(-1),
+      t_last_img(-1)
     //osviz_(pviz)
 {
     std::cout << "\n SLAM Manager is being created...\n";
@@ -110,124 +113,120 @@ void SlamManager::run()
 
     bis_on_ = true;
 
-    cv::Mat img_left, img_right;
-
-    double time = -1.; // Current image timestamp
-    double cam_delay = -1.; // Delay between two successive images
-    double last_img_time = -1.; // Last received image time
-
     // Main SLAM loop
     while( !bexit_required_ ) {
-
-        // 0. Get New Images
-        // =============================================
-        if( getNewImage(img_left, img_right, time) )
-        {
-            // Update current frame
-            frame_id_++;
-            pcurframe_->updateFrame(frame_id_, time);
-
-            // Update cam delay for automatic exit
-            if( frame_id_ > 0 ) {
-                cam_delay = static_cast<double>(getCurrentTimeSeconds()) - last_img_time;
-                last_img_time += cam_delay;
-            } else {
-                last_img_time = static_cast<double>(getCurrentTimeSeconds());
-            }
-
-            // Display info on current frame state
-            if( pslamstate_->debug_ )
-                pcurframe_->displayFrameInfo();
-
-            // 1. Send images to the FrontEnd
-            // =============================================
-            if( pslamstate_->debug_ )
-                std::cout << "\n \t >>> [SLAM Node] New image send to Front-End\n";
-
-            bool is_kf_req = pvisualfrontend_->visualTracking(img_left, time);
-
-            // Save current pose
-            //Logger::addSE3Pose(time, pcurframe_->getTwc(), is_kf_req);
-
-            if( pslamstate_->breset_req_ ) {
-                reset();
-                bprocess_triggered_ = false;
-                continue;
-            }
-
-            // 2. Create new KF if req. / Send new KF to Mapper
-            // ================================================
-            if( is_kf_req )
-            {
-                if( pslamstate_->debug_ )
-                    std::cout << "\n \t >>> [SLAM Node] New Keyframe send to Back-End\n";
-
-                if( pslamstate_->stereo_ )
-                {
-                    Keyframe kf(
-                        pcurframe_->kfid_,
-                        img_left,
-                        img_right,
-                        pvisualfrontend_->cur_pyr_
-                        );
-
-                    pmapper_->addNewKf(kf);
-                }
-                else if( pslamstate_->mono_ )
-                {
-                    Keyframe kf(pcurframe_->kfid_, img_left);
-                    pmapper_->addNewKf(kf);
-                }
-
-                if( !bkf_viz_ison_ ) {
-                    std::thread kf_viz_thread(&SlamManager::visualizeAtKFsRate, this, time);
-                    kf_viz_thread.detach();
-                }
-            }
-
-            if( pslamstate_->debug_ || pslamstate_->log_timings_ )
-                std::cout << Profiler::getInstance().displayTimeLogs() << std::endl;
-
-            // Frame rate visualization (limit the visualization processing)
-            if( !bframe_viz_ison_ ) {
-                std::thread viz_thread(&SlamManager::visualizeAtFrameRate, this, time);
-                viz_thread.detach();
-            }
-            bprocess_triggered_ = false;
-        }
-        else {
-
-            // 3. Check if we are done with a sequence!
-            // ========================================
-            bool c1 = cam_delay > 0;
-            bool c2 = ( static_cast<double>(getCurrentTimeSeconds()) - last_img_time ) > 100. * cam_delay;
-            bool c3 = !bnew_img_available_;
-
-            if( c1 && c2 && c3 )
-            {
-                bexit_required_ = true;
-
-                // Warn threads to stop and then save the results only in this case of
-                // automatic stop because end of sequence reached
-                // (avoid wasting time when forcing stop by CTRL+C)
-                pmapper_->bexit_required_ = true;
-
-                writeResults();
-
-                // Notify exit to ROS
-                //ros::requestShutdown();
-            }
-            else {
-                std::chrono::milliseconds dura(1);
-                std::this_thread::sleep_for(dura);
-            }
-            bprocess_triggered_ = false;
-        }
+      spin();
     }
 
     std::cout << "\nOV²SLAM is stopping!\n";
+}
 
-    bis_on_ = false;
+void SlamManager::spin()
+{
+  cv::Mat img_left, img_right;
+
+  // 0. Get New Images
+  // =============================================
+  if( getNewImage(img_left, img_right, t_current) )
+  {
+    // Update current frame
+    frame_id_++;
+    pcurframe_->updateFrame(frame_id_, t_current);
+
+    // Update cam delay for automatic exit
+    if( frame_id_ > 0 ) {
+      t_cam_delay = static_cast<double>(getCurrentTimeSeconds()) - t_last_img;
+      t_last_img += t_cam_delay;
+    } else {
+      t_last_img = static_cast<double>(getCurrentTimeSeconds());
+    }
+
+    // Display info on current frame state
+    if( pslamstate_->debug_ )
+      pcurframe_->displayFrameInfo();
+
+    // 1. Send images to the FrontEnd
+    // =============================================
+    if( pslamstate_->debug_ )
+      std::cout << "\n \t >>> [SLAM Node] New image send to Front-End\n";
+
+    bool is_kf_req = pvisualfrontend_->visualTracking(img_left, t_current);
+
+    // Save current pose
+    //Logger::addSE3Pose(time, pcurframe_->getTwc(), is_kf_req);
+
+    if( pslamstate_->breset_req_ ) {
+      reset();
+      bprocess_triggered_ = false;
+      return;
+    }
+
+    // 2. Create new KF if req. / Send new KF to Mapper
+    // ================================================
+    if( is_kf_req )
+    {
+      if( pslamstate_->debug_ )
+        std::cout << "\n \t >>> [SLAM Node] New Keyframe send to Back-End\n";
+
+      if( pslamstate_->stereo_ )
+      {
+        Keyframe kf(
+            pcurframe_->kfid_,
+            img_left,
+            img_right,
+            pvisualfrontend_->cur_pyr_
+        );
+
+        pmapper_->addNewKf(kf);
+      }
+      else if( pslamstate_->mono_ )
+      {
+        Keyframe kf(pcurframe_->kfid_, img_left);
+        pmapper_->addNewKf(kf);
+      }
+
+      if( !bkf_viz_ison_ ) {
+        std::thread kf_viz_thread(&SlamManager::visualizeAtKFsRate, this, t_current);
+        kf_viz_thread.detach();
+      }
+    }
+
+    if( pslamstate_->debug_ || pslamstate_->log_timings_ )
+      std::cout << Profiler::getInstance().displayTimeLogs() << std::endl;
+
+    // Frame rate visualization (limit the visualization processing)
+    if( !bframe_viz_ison_ ) {
+      std::thread viz_thread(&SlamManager::visualizeAtFrameRate, this, t_current);
+      viz_thread.detach();
+    }
+  }
+  else {
+
+    // 3. Check if we are done with a sequence!
+    // ========================================
+    bool c1 = t_cam_delay > 0;
+    bool c2 = ( static_cast<double>(getCurrentTimeSeconds()) - t_last_img ) > 100. * t_cam_delay;
+    bool c3 = !bnew_img_available_;
+
+    if( c1 && c2 && c3 )
+    {
+      bexit_required_ = true;
+
+      // Warn threads to stop and then save the results only in this case of
+      // automatic stop because end of sequence reached
+      // (avoid wasting time when forcing stop by CTRL+C)
+      pmapper_->bexit_required_ = true;
+
+      writeResults();
+
+      // Notify exit to ROS
+      //ros::requestShutdown();
+    }
+    else {
+      std::chrono::milliseconds dura(1);
+      std::this_thread::sleep_for(dura);
+    }
+  }
 }
 
 void SlamManager::addNewMonoImage(const double time, cv::Mat &im0)
@@ -411,6 +410,9 @@ void SlamManager::reset()
     //Logger::reset();
 
     frame_id_ = -1;
+    t_current = -1;
+    t_cam_delay = -1;
+    t_last_img = -1;
 
     std::lock_guard<std::mutex> lock(img_mutex_);
 

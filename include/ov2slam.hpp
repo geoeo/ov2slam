@@ -53,6 +53,7 @@ public:
     SlamManager(std::shared_ptr<SlamParams> pstate);
 
     void run();
+    void spin();
 
     bool getNewImage(cv::Mat &iml, cv::Mat &imr, double &time);
 
@@ -92,6 +93,10 @@ public:
     
     bool bframe_viz_ison_ = false;
     bool bkf_viz_ison_ = false;
+
+    double t_current;       // Current image timestamp
+    double t_cam_delay;     // Delay between two successive images
+    double t_last_img;      // Last received image time
 
     std::shared_ptr<SlamParams> pslamstate_;
     //std::shared_ptr<RosVisualizer> prosviz_;

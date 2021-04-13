@@ -115,6 +115,15 @@ public:
                                         const int nmaxiter, const float errth, const bool boptimize, 
                                         const float fx, const float fy, Eigen::Matrix3d &Rwc, Eigen::Vector3d &twc, 
                                         std::vector<int> &voutliersidx);
+
+    // Homography based pose computation
+    static bool opencvHomography(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &bvs1,
+                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &bvs2,
+                                  const int nmaxiter, const double reprojerr, const bool boptimize,
+                                  const float fx, const float fy, const float cx, const float cy,
+                                  Eigen::Matrix3d &Rwc, Eigen::Vector3d &twc,
+                                  std::vector<int> &voutliersidx);
+
     // Misc.
     // =====
     
@@ -123,4 +132,5 @@ public:
 
     static Eigen::Matrix3d computeFundamentalMat12(const Sophus::SE3d &Tw1, const Sophus::SE3d &Tw2, const Eigen::Matrix3d &K1, const Eigen::Matrix3d &K2);
     static Eigen::Matrix3d computeFundamentalMat12(const Sophus::SE3d &Tw1, const Sophus::SE3d &Tw2, const Eigen::Matrix3d &K);
+
 };

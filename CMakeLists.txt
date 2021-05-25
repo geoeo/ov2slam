@@ -108,8 +108,8 @@ Set it to OFF is OpenCV was not compiled with the opencv_contrib modules)\n")
 endif()
 
 if( EXISTS "${PROJECT_SOURCE_DIR}/Thirdparty/ibow_lcd/build/liblcdetector.so" )
-  #add_definitions(-DIBOW_LCD)
-  #set(WITH_IBOW_LCD ON)
+  add_definitions(-DIBOW_LCD)
+  set(WITH_IBOW_LCD ON)
   message(STATUS "iBoW-LCD found!  Going to use Loop Closer!")
 else ( )
   message(STATUS "iBoW-LCD NOT found!  Loop Closer will not be enabled!")
@@ -244,6 +244,22 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
 
 # Add optional dependencies if they are found
 if (WITH_IBOW_LCD)
+  list(APPEND HEADERS
+          Thirdparty/ibow_lcd/include/ibow_lcd/island.h
+          Thirdparty/ibow_lcd/include/ibow_lcd/lcdetector.h
+          Thirdparty/ibow_lcd/external/json.hpp
+          Thirdparty/obindex2/lib/include/obindex2/binary_tree_node.h
+          Thirdparty/obindex2/lib/include/obindex2/binary_tree.h
+          Thirdparty/obindex2/lib/include/obindex2/binary_index.h
+          Thirdparty/obindex2/lib/include/obindex2/binary_descriptor.h
+          Thirdparty/obindex2/lib/external/catch/catch.hpp
+          )
+
+  list(APPEND THIRDPARTY_LIBS
+          Thirdparty/ibow_lcd/build/liblcdetector.so
+          Thirdparty/obindex2/build/lib/libobindex2.so
+          )
+
   target_include_directories(${LIBRARY_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/obindex2/lib/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/ibow_lcd/include>
@@ -287,6 +303,12 @@ install(TARGETS ${LIBRARY_NAME} EXPORT ov2slamTargets
 install(
         FILES ${HEADERS}
         DESTINATION ${ov2slam_INC_INSTALL_DIR}
+)
+
+# Thirdparty libs
+install(
+        FILES ${THIRDPARTY_LIBS}
+        DESTINATION ${ov2slam_LIBRARY_INSTALL_DIR}
 )
 
 

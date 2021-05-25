@@ -101,8 +101,8 @@ public:
     std::shared_ptr<SlamParams> pslamstate_;
     //std::shared_ptr<RosVisualizer> prosviz_;
 
-    std::shared_ptr<CameraCalibration> pcalib_model_left_;
-    std::shared_ptr<CameraCalibration> pcalib_model_right_;
+    std::shared_ptr<CameraCalibration> pcalib_model_left_ = nullptr;
+    std::shared_ptr<CameraCalibration> pcalib_model_right_ = nullptr;
 
     std::shared_ptr<Frame> pcurframe_;
 

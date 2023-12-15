@@ -13,7 +13,7 @@ set(LIBRARY_NAME ov2slam)
 # NOTE!
 #######
 # Set to OFF if you did not compile OpenCV w. opencv_contrib
-set(WITH_OPENCV_CONTRIB ON)
+set(WITH_OPENCV_CONTRIB OFF)
 
 # iBOW-LCD
 #

@@ -13,7 +13,7 @@ set(LIBRARY_NAME ov2slam)
 # NOTE!
 #######
 # Set to OFF if you did not compile OpenCV w. opencv_contrib
-set(WITH_OPENCV_CONTRIB OFF)
+set(WITH_OPENCV_CONTRIB ON)
 
 # iBOW-LCD
 #
@@ -140,11 +140,11 @@ endif (Eigen3_FOUND)
 
 #OpenGV
 find_package(opengv QUIET)
-# Bug include CMake 1.17
-get_target_property(opengv_INCLUDE_DIR opengv INTERFACE_INCLUDE_DIRECTORIES)
 
 if (opengv_FOUND)
   message(STATUS "Found Opengv lib : ${opengv_INCLUDE_DIR} - ${opengv_DIR}")
+  # Bug include CMake 1.17
+  get_target_property(opengv_INCLUDE_DIR opengv INTERFACE_INCLUDE_DIRECTORIES)
   add_definitions(-DUSE_OPENGV)
 endif (opengv_FOUND)
 
